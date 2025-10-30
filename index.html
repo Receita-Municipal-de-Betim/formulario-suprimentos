@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Adiciona um spinner de carregamento */
         #loadingSpinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #3498db;
@@ -100,15 +99,13 @@
 
     <script>
         // --- CONFIGURAÇÃO OBRIGATÓRIA ---
-        // 1. Siga o guia "guia_planilha_config.md" para publicar sua planilha.
-        // 2. Cole os links gerados abaixo, entre as aspas simples.
-
-        const urlItens = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ61KT9_51LPLaZwKzkx6f2PEJBHn0vQwEsKtn6wIb9ASGRBBBWX_574epwJbWFjk2pBPJHIdLfqs-/pub?gid=0&single=true&output=csv';
-        const urlConfig = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ61KT9_51LPLaZwKzkx6f2PEJBHn0vQwEsKtn6wIb9ASGRBBBWX_574epwJbWFjk2pBPJHIdLfqs-/pub?gid=1010112998&single=true&output=csv';
+        // Este é o URL da sua "ponte" (Google Apps Script).
+        // Eu já colei o link que você me enviou.
+        const urlWebApp = 'https://script.google.com/a/macros/betim.mg.gov.br/s/AKfycbz53yD8zNwQBiq-NgFNfJGiyGBJSRHZsPBnz4q8-Gl0CDXtxNAyLg_vBIZiObm-NsJJRQ/exec';
         // ----------------------------------
 
         // Variável global para guardar o e-mail do gestor
-        let emailGestor = 'diogenes.santos@betim.mg.gov.br'; // E-mail de fallback
+        let emailGestor = 'email.fallback@dominio.com'; // E-mail de fallback
 
         // Função para exibir erros de forma amigável
         function exibirErro(mensagem) {
@@ -120,38 +117,36 @@
         // Função para buscar e processar os dados das planilhas
         async function carregarConfiguracoes() {
             
-            // **FIX:** A verificação de erro deve usar os placeholders originais
-            if (urlItens === 'COLE_A_URL_DA_ABA_ITENS_AQUI' || urlConfig === 'COLE_A_URL_DA_ABA_CONFIG_AQUI') {
-                exibirErro('ERRO DE CONFIGURAÇÃO: Os URLs da Planilha Google ainda não foram inseridos no ficheiro HTML. Edite o ficheiro e cole os links nas variáveis urlItens e urlConfig.');
+            // Verificação de segurança
+            if (urlWebApp === 'COLE_O_URL_DA_APLICACAO_WEB_AQUI') {
+                exibirErro('ERRO DE CONFIGURAÇÃO: O URL da Aplicação Web (Apps Script) ainda não foi inserido no ficheiro HTML.');
                 return;
             }
 
             try {
-                // 1. Buscar o e-mail do gestor
-                const responseConfig = await fetch(urlConfig);
-                if (!responseConfig.ok) throw new Error('Falha ao carregar configuração de e-mail.');
+                // 1. Chamar a "ponte" (Apps Script)
+                const response = await fetch(urlWebApp);
                 
-                const csvConfig = await responseConfig.text();
-                const linhasConfig = csvConfig.split('\n');
-                linhasConfig.forEach(linha => {
-                    const colunas = linha.split(',');
-                    if (colunas[0] === 'EmailGestor') {
-                        emailGestor = colunas[1].trim();
-                    }
-                });
+                if (!response.ok) {
+                    throw new Error('Falha ao contactar a "ponte" (Apps Script). Verifique as permissões.');
+                }
+                
+                const dados = await response.json(); // Espera a resposta em JSON
 
-                // 2. Buscar e construir a lista de itens
-                const responseItens = await fetch(urlItens);
-                if (!responseItens.ok) throw new Error('Falha ao carregar lista de itens.');
+                // 2. Verificar se o script na planilha deu erro
+                if (dados.status === 'erro') {
+                    throw new Error(`Erro retornado pela planilha: ${dados.mensagem}`);
+                }
 
-                const csvItens = await responseItens.text();
-                const linhasItens = csvItens.split('\n').slice(1); // Pula o cabeçalho "NomeDoItem"
+                // 3. Usar o e-mail vindo da "ponte"
+                emailGestor = dados.emailGestor || emailGestor;
+
+                // 4. Usar a lista de itens vinda da "ponte"
                 const listaItensDiv = document.getElementById('listaItens');
-                
                 listaItensDiv.innerHTML = ''; // Limpa a lista
                 
-                linhasItens.forEach((itemNome, index) => {
-                    if (itemNome.trim()) {
+                dados.itens.forEach((itemNome, index) => {
+                    if (itemNome && itemNome.trim()) {
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'grid grid-cols-3 gap-2 item-container';
                         
@@ -179,7 +174,7 @@
 
             } catch (error) {
                 console.error(error);
-                exibirErro(`Erro ao carregar dados: ${error.message}. Verifique se os URLs no código estão corretos e se a planilha está publicada na web.`);
+                exibirErro(`Erro fatal ao carregar dados: ${error.message}. Verifique o URL da Aplicação Web, as permissões do script e se a planilha está correta.`);
             }
         }
 
@@ -249,4 +244,3 @@
     </script>
 </body>
 </html>
-
