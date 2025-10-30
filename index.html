@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Requisição de Suprimentos</title>
+    <!-- Carrega o Tailwind CSS para o estilo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carrega a fonte Inter do Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Define a fonte Inter como padrão */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+        <!-- Cartão principal do formulário -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <!-- Cabeçalho -->
+            <div class="mb-6 border-b border-gray-200 pb-6">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Formulário de Requisição de Suprimentos</h1>
+                <p class="mt-2 text-gray-600">Preencha seu nome, selecione seu setor e informe a quantidade dos itens desejados. Use a busca para encontrar itens rapidamente.</p>
+            </div>
+
+            <!-- Dados do Solicitante (Nome e Setor) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label for="nome" class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                    <input type="text" id="nome" name="nome" required class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Seu nome completo">
+                </div>
+                <div>
+                    <label for="setor" class="block text-sm font-medium text-gray-700 mb-2">Seu Setor/Área</label>
+                    <!-- LISTA DE SETORES ATUALIZADA E SIMPLIFICADA -->
+                    <select id="setor" name="setor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                        <option value="" disabled selected>Selecione seu setor</option>
+                        <option value="Assessoria de Análise Tributária">Assessoria de Análise Tributária</option>
+                        <option value="Atendimento">Atendimento</option>
+                        <option value="Superintendência do VAF">Superintendência do VAF</option>
+                        <option value="Rendas Mobiliárias">Rendas Mobiliárias</option>
+                        <option value="Rendas Imobiliárias e Cadastro Imobiliário">Rendas Imobiliárias e Cadastro Imobiliário</option>
+                        <option value="IPTU">IPTU</option>
+                        <option value="ITBI">ITBI</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Catálogo de Itens com Busca -->
+            <div class="mb-8">
+                <label for="busca" class="block text-sm font-medium text-gray-700 mb-2">Buscar item no catálogo</label>
+                <input type="text" id="busca" onkeyup="filtrarItens()" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Digite o nome do item...">
+            </div>
+
+            <!-- Lista de Itens (preenchida dinamicamente) -->
+            <div id="catalogo" class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                <!-- Itens serão inseridos aqui pelo JavaScript -->
+            </div>
+
+            <!-- Botão de Ação -->
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end">
+                <button onclick="gerarPedido()" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                    Gerar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Resumo do Pedido (janela pop-up) -->
+    <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 sm:p-8 transform transition-all">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Resumo do Pedido</h2>
+            <p class="mb-4 text-gray-600">Seu pedido foi formatado. Escolha uma das opções abaixo para continuar.</p>
+            <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                <!-- O texto do pedido formatado aparecerá aqui -->
+                <pre id="resumoPedido" class="whitespace-pre-wrap text-sm text-gray-800 font-mono"></pre>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                 <button onclick="enviarPorEmail()" class="w-full sm:w-auto px-5 py-2.5 bg-green-600 text-white font-semibold rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Enviar por E-mail
+                </button>
+                <button onclick="copiarPedido()" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Copiar Texto
+                </button>
+                <button onclick="fecharModal()" class="w-full sm:w-auto px-5 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // --- CONFIGURAÇÃO ---
+        // IMPORTANTE: Insira aqui o e-mail do Gestor de Suprimentos
+        const emailGestor = 'gestor.suprimentos@sualoja.com';
+
+        // Lista de itens baseada na sua planilha
+        const itensDoAlmoxarifado = [
+            'ALMOFADA PARA CARIMBO Nº 3', 'APONTADOR EM MATERIAL PLÁSTICO', 'BORRACHA BRANCA MACIA Nº40', 'CANETA DESTACA TEXTO, VERDE',
+            'CANETA ESFEROGRÁFICA, AZUL', 'CLIPS NIQUELADO Nº2/0', 'ENVELOPE SACO OFICIO S/ TIMBRE', 'EXTRATOR DE GRAMPO',
+            'FITA CREPE ESTREITA 19 MM X 50M', 'FITA DUREX', 'FITA MÁGICA TRANSPARENTE 12MM', 'GOMAS ELÁSTICAS Nº18', 'PERFURADOR PARA PAPEL',
+            'LIVRO DE PROTOCOLO CAPA DURA', 'PASTA CATÁLOGO COM 50', 'PASTA PLASTIFICADA COM BA', 'PRANCHETA EM EUCATEX, MANUAL',
+            'RÉGUA ESCOLAR 3 CM', 'TESOURA EM AÇO INOXIDÁVEL', 'TINTA PARA ALMOFADA', 'PINCEL P/ QUADRO BRANCO AZUL E PRETO',
+            'ESPONJA DE AÇO BIODEGRADÁVEL', 'ESPONJA DE NYLON', 'FLANELA PARA LIMPEZA', 'GRAMPEADOR INDUSTRIAL', 'FITA ADESIVA EM PVC',
+            'AÇUCAR CRISTAL', 'MOUSE OPTICO USB', 'DETERGENTE', 'PAPEL A4', 'GRAMPEADOR METÁLICO', 'GRAMPO TRILHO EM PLÁSTICO',
+            'ALCOOL LÍQUIDO 70º INPM', 'LIXEIRA PLASTICA TELADA', 'CANETA FIXA EM ALUMINIO'
+        ];
+        // --- FIM DA CONFIGURAÇÃO ---
+
+
+        const catalogoDiv = document.getElementById('catalogo');
+
+        // Popula o catálogo de itens
+        itensDoAlmoxarifado.sort().forEach(item => { // Ordena os itens alfabeticamente
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 item-catalogo';
+            itemDiv.innerHTML = `
+                <label for="item-${item}" class="text-sm font-medium text-gray-700">${item}</label>
+                <!-- ALTERAÇÃO IMPORTANTE: type="text" permite "5 kg", "1 pacote", etc. -->
+                <input id="item-${item}" name="${item}" type="text" class="w-24 px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-center focus:ring-1 focus:ring-blue-500 focus:border-blue-500" placeholder="Qtd.">
+            `;
+            catalogoDiv.appendChild(itemDiv);
+        });
+
+        // Função da barra de busca
+        function filtrarItens() {
+            const termoBusca = document.getElementById('busca').value.toUpperCase();
+            const itens = document.getElementsByClassName('item-catalogo');
+            for (let i = 0; i < itens.length; i++) {
+                const label = itens[i].getElementsByTagName('label')[0];
+                if (label.innerHTML.toUpperCase().indexOf(termoBusca) > -1) {
+                    itens[i].style.display = "flex";
+                } else {
+                    itens[i].style.display = "none";
+                }
+            }
+        }
+
+        // Função para gerar o pedido
+        function gerarPedido() {
+            const nome = document.getElementById('nome').value;
+            const setor = document.getElementById('setor').value;
+
+            // Validação de campos
+            if (!nome || !setor) {
+                alert('Por favor, preencha seu Nome e Setor antes de gerar o pedido.');
+                return;
+            }
+
+            let textoPedido = `NOVO PEDIDO DE SUPRIMENTOS\n`;
+            textoPedido += `--------------------------------\n`;
+            textoPedido += `Data do Pedido: ${new Date().toLocaleDateString('pt-BR')}\n`;
+            textoPedido += `Solicitante: ${nome}\n`;
+            textoPedido += `Setor: ${setor}\n`;
+            textoPedido += `--------------------------------\n\n`;
+            textoPedido += `ITENS SOLICITADOS:\n\n`;
+            
+            let totalItens = 0;
+            // Coleta os itens e quantidades
+            itensDoAlmoxarifado.forEach(item => {
+                const input = document.getElementById(`item-${item}`);
+                // Mudamos para .value (que pega texto) e verificamos se não está vazio
+                const quantidade = input.value.trim(); 
+                if (quantidade && quantidade.length > 0) {
+                    textoPedido += `- ${item}: ${quantidade}\n`;
+                    totalItens++;
+                }
+            });
+
+            // Validação de itens
+            if (totalItens === 0) {
+                alert('Nenhum item com quantidade foi selecionado. Preencha a quantidade dos itens que deseja solicitar.');
+                return;
+            }
+
+            // Mostra o modal com o resumo
+            document.getElementById('resumoPedido').innerText = textoPedido;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function fecharModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
+        
+        // Função para abrir o cliente de e-mail
+        function enviarPorEmail() {
+            const texto = document.getElementById('resumoPedido').innerText;
+            const nome = document.getElementById('nome').value;
+            const assunto = `Novo Pedido de Suprimentos - ${nome}`;
+            
+            const mailtoLink = `mailto:${emailGestor}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(texto)}`;
+            
+            window.location.href = mailtoLink; // Abre o cliente de e-mail (Outlook, etc.)
+            fecharModal();
+        }
+
+        // Função para copiar o texto
+        function copiarPedido() {
+            const texto = document.getElementById('resumoPedido').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = texto;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                // Tenta usar a API moderna de clipboard
+                navigator.clipboard.writeText(texto).then(() => {
+                    alert('Pedido copiado para a área de transferência!');
+                }).catch(err => {
+                    // Fallback para o método antigo (execCommand)
+                    throw err;
+                });
+            } catch (err) {
+                // Fallback para o método antigo (execCommand)
+                try {
+                    document.execCommand('copy');
+                    alert('Pedido copiado para a área de transferência!');
+                } catch (err) {
+                    alert('Não foi possível copiar o pedido. Por favor, copie manualmente.');
+                }
+            }
+            document.body.removeChild(textarea);
+            fecharModal();
+        }
+    </script>
+</body>
+</html>
+
