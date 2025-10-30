@@ -7,16 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        #loadingSpinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -62,14 +52,16 @@
                             <label for="setor" class="block text-sm font-medium text-gray-700">Setor/Área</label>
                             <select id="setor" name="setor" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
                                 <option value="" disabled selected>Selecione seu setor</option>
-                                <option>Assessoria de Análise Tributária</option>
+                                <option>Arrecadação de IPTU</option>
+                                <option>Arrecadação de ITBI</option>
+                                <option>Rendas Imobiliárias</option>
+                                <option>Cadastro Imobiliário</option>
                                 <option>Atendimento</option>
-                                <option>Superintendência do VAF</option>
-                                <option>Rendas Mobiliárias</option>
-                                <option>Rendas Imobiliárias e Cadastro Imobiliário</option>
-                                <option>IPTU</option>
-                                <option>ITBI</option>
-                                <option>Gestão Interna</option>
+                                <option>Assessoria de Análise Tributária</option>
+                                <option>Arrecadação de TFE</option>
+                                <option>Arrecadação de ISS</option>
+                                <option>Rendas Mobiliária</option>
+                                <option>Cadastro Mobiliário</option>
                             </select>
                         </div>
                     </div>
@@ -82,10 +74,8 @@
                     
                     <input type="text" id="filtroItens" placeholder="Buscar item..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mb-4 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     
-                    <!-- Onde os itens da planilha serão carregados -->
-                    <div id="loadingSpinner"></div>
                     <div id="listaItens" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                        <!-- Os itens da Planilha Google serão inseridos aqui pelo JavaScript -->
+                        <!-- Os itens estão agora no JavaScript -->
                     </div>
                 </fieldset>
 
@@ -98,84 +88,77 @@
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO OBRIGATÓRIA ---
-        // Este é o URL da sua "ponte" (Google Apps Script).
-        // Eu já colei o link que você me enviou.
-        const urlWebApp = 'https://script.google.com/a/macros/betim.mg.gov.br/s/AKfycbz53yD8zNwQBiq-NgFNfJGiyGBJSRHZsPBnz4q8-Gl0CDXtxNAyLg_vBIZiObm-NsJJRQ/exec';
-        // ----------------------------------
+        // --- CONFIGURAÇÃO ---
+        // O e-mail principal para o botão "Enviar por E-mail".
+        // (Confirme se este é o e-mail correto)
+        const emailGestor = 'diogenes.santos@betim.mg.gov.br';
 
-        // Variável global para guardar o e-mail do gestor
-        let emailGestor = 'email.fallback@dominio.com'; // E-mail de fallback
+        // A lista de itens do almoxarifado agora vive aqui.
+        // Para adicionar/remover itens, edite esta lista.
+        const itensDoAlmoxarifado = [
+            "ALMOFADA PARA CARIMBO Nº 3",
+            "APONTADOR EM MATERIAL PLÁSTICO",
+            "BORRACHA BRANCA MACIA Nº40",
+            "CANETA DESTACA TEXTO, VERDE",
+            "CANETA ESFEROGRÁFICA, AZUL",
+            "CLIPS NIQUELADO Nº2/0",
+            "ENVELOPE SACO OFICIO S/ TIMBRE",
+            "EXTRATOR DE GRAMPO",
+            "FITA CREPE ESTREITA 19 MM X 50M",
+            "FITA DUREX",
+            "FITA MÁGICA TRANSPARENTE 12MM",
+            "GOMAS ELÁSTICAS Nº18",
+            "PERFURADOR PARA PAPEL",
+            "LIVRO DE PROTOCOLO CAPA DURA",
+            "PASTA CATÁLAGO COM 50",
+            "PASTA PLASTIFICADA COM BA",
+            "PRANCHETA EM EUCATEX, MANUAL",
+            "RÉGUA ESCOLAR 3 CM",
+            "TESOURA EM AÇO INOXIDÁVEL",
+            "TINTA PARA ALMOFADA",
+            "PINCEL P/ QUADRO BRANCO AZUL E PRETO",
+            "ESPONJA DE AÇO BIODEGRADÁVEL",
+            "ESPONJA DE NYLON",
+            "FLANELA PARA LIMPEZA",
+            "GRAMPEADOR INDUSTRIAL",
+            "FITA ADESIVA EM PVC",
+            "AÇUCAR CRISTAL",
+            "MOUSE OPTICO USB",
+            "DETERGENTE",
+            "PAPEL A4",
+            "GRAMPEADOR METÁLICO",
+            "GRAMPO TRILHO EM PLÁSTICO",
+            "ALCOOL LÍQUIDO 70º INPM",
+            "LIXEIRA PLASTICA TELADA",
+            "CANETA FIXA EM ALUMINIO"
+        ];
+        // --- FIM DA CONFIGURAÇÃO ---
 
-        // Função para exibir erros de forma amigável
-        function exibirErro(mensagem) {
+
+        // Função para construir a lista de itens no HTML
+        function carregarItens() {
             const listaItensDiv = document.getElementById('listaItens');
-            listaItensDiv.innerHTML = `<p class="text-red-600 text-center font-semibold p-4">${mensagem}</p>`;
-            document.getElementById('loadingSpinner').style.display = 'none';
-        }
-
-        // Função para buscar e processar os dados das planilhas
-        async function carregarConfiguracoes() {
+            listaItensDiv.innerHTML = ''; // Limpa a lista
             
-            // Verificação de segurança
-            if (urlWebApp === 'COLE_O_URL_DA_APLICACAO_WEB_AQUI') {
-                exibirErro('ERRO DE CONFIGURAÇÃO: O URL da Aplicação Web (Apps Script) ainda não foi inserido no ficheiro HTML.');
-                return;
-            }
-
-            try {
-                // 1. Chamar a "ponte" (Apps Script)
-                const response = await fetch(urlWebApp);
+            itensDoAlmoxarifado.forEach((itemNome, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'grid grid-cols-3 gap-2 item-container';
                 
-                if (!response.ok) {
-                    throw new Error('Falha ao contactar a "ponte" (Apps Script). Verifique as permissões.');
-                }
+                const label = document.createElement('label');
+                label.htmlFor = `item-${index}`;
+                label.className = 'col-span-2 text-sm font-medium text-gray-700 self-center item-nome';
+                label.textContent = itemNome.trim();
                 
-                const dados = await response.json(); // Espera a resposta em JSON
-
-                // 2. Verificar se o script na planilha deu erro
-                if (dados.status === 'erro') {
-                    throw new Error(`Erro retornado pela planilha: ${dados.mensagem}`);
-                }
-
-                // 3. Usar o e-mail vindo da "ponte"
-                emailGestor = dados.emailGestor || emailGestor;
-
-                // 4. Usar a lista de itens vinda da "ponte"
-                const listaItensDiv = document.getElementById('listaItens');
-                listaItensDiv.innerHTML = ''; // Limpa a lista
+                const input = document.createElement('input');
+                input.type = 'text'; // Permite texto (ex: "5 pacotes")
+                input.id = `item-${index}`;
+                input.name = itemNome.trim();
+                input.className = 'col-span-1 block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500';
                 
-                dados.itens.forEach((itemNome, index) => {
-                    if (itemNome && itemNome.trim()) {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'grid grid-cols-3 gap-2 item-container';
-                        
-                        // Rótulo do Item
-                        const label = document.createElement('label');
-                        label.htmlFor = `item-${index}`;
-                        label.className = 'col-span-2 text-sm font-medium text-gray-700 self-center item-nome';
-                        label.textContent = itemNome.trim();
-                        
-                        // Campo de Quantidade
-                        const input = document.createElement('input');
-                        input.type = 'text'; // Permite texto (ex: "5 pacotes")
-                        input.id = `item-${index}`;
-                        input.name = itemNome.trim();
-                        input.className = 'col-span-1 block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500';
-                        
-                        itemDiv.appendChild(label);
-                        itemDiv.appendChild(input);
-                        listaItensDiv.appendChild(itemDiv);
-                    }
-                });
-
-                // Esconde o spinner de carregamento
-                document.getElementById('loadingSpinner').style.display = 'none';
-
-            } catch (error) {
-                console.error(error);
-                exibirErro(`Erro fatal ao carregar dados: ${error.message}. Verifique o URL da Aplicação Web, as permissões do script e se a planilha está correta.`);
-            }
+                itemDiv.appendChild(label);
+                itemDiv.appendChild(input);
+                listaItensDiv.appendChild(itemDiv);
+            });
         }
 
         // Filtro de Busca
@@ -207,7 +190,6 @@
             pedidoTexto += `\n--- ITENS SOLICITADOS ---\n`;
             
             let temItens = false;
-            // Itera sobre todos os campos de input de itens
             document.getElementById('listaItens').querySelectorAll('input[type="text"]').forEach(input => {
                 if (input.value.trim() !== '') {
                     pedidoTexto += `- ${input.name}: ${input.value}\n`;
@@ -239,8 +221,10 @@
             window.location.href = `mailto:${emailGestor}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
         });
 
-        // Carrega as configurações ao iniciar a página
-        document.addEventListener('DOMContentLoaded', carregarConfiguracoes);
+        // Carrega os itens ao iniciar a página
+        document.addEventListener('DOMContentLoaded', carregarItens);
     </script>
 </body>
 </html>
+
+
